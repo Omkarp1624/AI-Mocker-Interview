@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  devIndicators: {
-    buildActivity: false,
-  },
-};
-
-export default nextConfig;
+    experimental: {
+      middlewarePrefetch: "strict", // Ensure middleware runs
+    },
+  };
+  
+  export default nextConfig;
+  
