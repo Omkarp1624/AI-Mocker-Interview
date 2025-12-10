@@ -1,3 +1,4 @@
+// src/app/api/interview/route.js
 import { db } from "@/utils/db";
 import { MockInterview } from "@/utils/schema";
 import { chatSession } from "@/utils/GeminiAIModal";
@@ -28,12 +29,6 @@ export async function POST(req) {
       );
     }
 
-    console.log("Creating interview for:", {
-      jobPosition,
-      jobDesc,
-      jobExperience,
-    });
-
     const inputPrompt = `Generate 5 interview questions with answers for the following job:
 Job Position: ${jobPosition}
 Job Description/Tech Stack: ${jobDesc}
@@ -49,53 +44,45 @@ Do not add any text before or after the JSON array.`;
 
     const result = await chatSession.sendMessage(inputPrompt);
 
-    console.log("Full result object:", JSON.stringify(result, null, 2));
-
-    // Extract text safely - handle multiple possible response structures
+    // Extract text safely from Gemini
     let rawText = "";
-    
+
     if (typeof result === "string") {
       rawText = result;
     } else if (result?.response?.text && typeof result.response.text === "function") {
-      rawText = result.response.text();
+      rawText = await result.response.text();
     } else if (result?.response?.text && typeof result.response.text === "string") {
       rawText = result.response.text;
     } else if (result?.text && typeof result.text === "string") {
       rawText = result.text;
     } else {
-      console.error("Cannot extract text from result:", result);
       return NextResponse.json(
         { success: false, error: "Invalid AI response structure" },
         { status: 500 }
       );
     }
 
-    console.log("Extracted raw text:", rawText);
-
     if (!rawText || typeof rawText !== "string") {
-      console.error("rawText is not a string:", rawText, typeof rawText);
       return NextResponse.json(
         { success: false, error: "AI response is not text" },
         { status: 500 }
       );
     }
 
-    // Clean the AI response - remove markdown fences and extra text
+    // Clean AI response
     let cleaned = rawText
-      .replace(/```json/gi, "")
-      .replace(/```/gi, "")
+      .replace(/```/g, "") // remove triple backticks
+      .replace(/`/g, "") // remove single backticks
       .trim();
 
-    console.log("After markdown removal:", cleaned);
-
     // Try to extract JSON array or object
-    let jsonMatch = cleaned.match(/\[\s*\{[\s\S]*\}\s*\]/) || // Array of objects
-                   cleaned.match(/\{\s*"[^"]*"[\s\S]*\}/);     // Single object
+    let jsonMatch =
+      cleaned.match(/\[\s*\{[\s\S]*\}\s*\]/) || // array
+      cleaned.match(/\{\s*"[^"]*"[\s\S]*\}/);   // object
 
     if (jsonMatch) {
-      cleaned = jsonMatch[0];
+      cleaned = jsonMatch;
     } else {
-      // Fallback: find first { and last }
       const firstBrace = cleaned.indexOf("{");
       const lastBrace = cleaned.lastIndexOf("}");
       if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
@@ -103,10 +90,7 @@ Do not add any text before or after the JSON array.`;
       }
     }
 
-    console.log("Final cleaned JSON:", cleaned.substring(0, 300));
-
     if (!cleaned) {
-      console.error("Cleaned response is empty");
       return NextResponse.json(
         { success: false, error: "Empty response from AI" },
         { status: 500 }
@@ -116,54 +100,65 @@ Do not add any text before or after the JSON array.`;
     let parsedQuestions;
     try {
       parsedQuestions = JSON.parse(cleaned);
-      console.log("Questions parsed successfully:", parsedQuestions);
     } catch (parseError) {
-      console.error("JSON parse error:", parseError.message);
-      console.error("Failed to parse:", cleaned.substring(0, 500));
+      console.error("Gemini raw text:", rawText);
+      console.error("Cleaned candidate JSON:", cleaned);
+      console.error("Parse error:", parseError);
       return NextResponse.json(
-        { 
-          success: false, 
-          error: `JSON parse failed at position ${parseError.message}. Expected format: [{"question":"...", "answer":"..."}]`,
-          sample: cleaned.substring(0, 300)
+        {
+          success: false,
+          error:
+            'JSON parse failed. Expected format: [{"question":"...","answer":"..."}]',
         },
         { status: 500 }
       );
     }
 
-    // Ensure parsedQuestions is an array
     if (!Array.isArray(parsedQuestions)) {
       parsedQuestions = [parsedQuestions];
     }
 
+    // Basic shape validation
+    parsedQuestions = parsedQuestions.filter(
+      (q) =>
+        q &&
+        typeof q.question === "string" &&
+        typeof q.answer === "string"
+    );
+
+    if (parsedQuestions.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'AI did not return any valid questions in format [{"question":"...","answer":"..."}]',
+        },
+        { status: 500 }
+      );
+    }
+
     const mockId = uuidv4();
-    console.log("Generated mockId:", mockId);
 
-    console.log("Inserting into database...");
-    const resp = await db
-      .insert(MockInterview)
-      .values({
-        mockId: mockId,
-        jsonMockResp: JSON.stringify(parsedQuestions),
-        jobPosition: jobPosition,
-        jobDesc: jobDesc,
-        jobExperience: jobExperience,
-        createdBy: userEmail,
-        createdAt: moment().format("DD-MM-YYYY"),
-      })
-      .returning({ mockId: MockInterview.mockId });
-
-    console.log("Insert successful:", resp);
+    await db.insert(MockInterview).values({
+      mockId,
+      jsonMockResp: JSON.stringify(parsedQuestions),
+      jobPosition,
+      jobDesc,
+      jobExperience,
+      createdBy: userEmail,
+      createdAt: moment().format("DD-MM-YYYY"),
+    });
 
     return NextResponse.json(
       {
         success: true,
-        mockId: mockId,
+        mockId,
         questions: parsedQuestions,
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error creating interview:", error);
+    console.error("/api/interview POST error:", error);
     return NextResponse.json(
       {
         success: false,
@@ -174,7 +169,7 @@ Do not add any text before or after the JSON array.`;
   }
 }
 
-// GET: Fetch all interviews for current user
+// GET: single or list
 export async function GET(req) {
   try {
     const { userId } = await auth();
@@ -187,16 +182,37 @@ export async function GET(req) {
     }
 
     const { searchParams } = new URL(req.url);
+    const interviewId = searchParams.get("id");
     const userEmail = searchParams.get("email");
 
+    // Single interview by id
+    if (interviewId) {
+      const interview = await db
+        .select()
+        .from(MockInterview)
+        .where(eq(MockInterview.mockId, interviewId))
+        .limit(1);
+
+      if (interview.length === 0) {
+        return NextResponse.json(
+          { success: false, error: "Interview not found" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json(
+        { success: true, interview: interview },
+        { status: 200 }
+      );
+    }
+
+    // List interviews by email
     if (!userEmail) {
       return NextResponse.json(
         { success: false, error: "Email parameter required" },
         { status: 400 }
       );
     }
-
-    console.log("Fetching interviews for:", userEmail);
 
     const interviews = await db
       .select()
@@ -205,16 +221,13 @@ export async function GET(req) {
       .orderBy(desc(MockInterview.id));
 
     return NextResponse.json(
-      {
-        success: true,
-        interviews,
-      },
+      { success: true, interviews },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error fetching interviews:", error);
+    console.error("/api/interview GET error:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch interviews" },
+      { success: false, error: "Failed to fetch interview" },
       { status: 500 }
     );
   }

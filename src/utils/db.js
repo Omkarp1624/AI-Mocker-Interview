@@ -1,23 +1,20 @@
-// import { drizzle } from "drizzle-orm/neon-http";
-// import { neon } from "@neondatabase/serverless";
-// import { config } from "dotenv";
-// import * as schema from "./schema";
-// config({ path: ".env.local" });
-
-// const sql = neon(process.env.DRIZZLE_DB_URL);
-// export const db = drizzle({ client: sql, schema });
-
+// src/utils/db.js
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import * as schema from "./schema";
 
-// Check if database URL exists (only on server)
+// These logs should appear ONLY in the terminal (server), never in browser
+console.log("NODE_ENV (server):", process.env.NODE_ENV);
+console.log(
+  "DRIZZLE_DB_URL on server present?",
+  !!process.env.DRIZZLE_DB_URL
+);
+
 if (!process.env.DRIZZLE_DB_URL) {
   throw new Error(
-    'Database URL not found. Make sure DRIZZLE_DB_URL is set in .env.local'
+    "Database URL not found. Make sure DRIZZLE_DB_URL is set in .env.local"
   );
 }
 
 const sql = neon(process.env.DRIZZLE_DB_URL);
-export const db = drizzle({ client: sql, schema });
-
+export const db = drizzle(sql, { schema });
