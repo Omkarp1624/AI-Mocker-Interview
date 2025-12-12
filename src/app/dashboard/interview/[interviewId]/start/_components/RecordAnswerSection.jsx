@@ -18,12 +18,13 @@ function RecordAnswerSection({
   interviewData,
 }) {
   const [userAnswer, setUserAnswer] = useState("");
-  const { user } = useUser();
+  const [shouldSave, setShouldSave] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { user } = useUser();
 
+  // Hook must always be called at top level (no conditions)
   const {
     error,
-    interimResult,
     isRecording,
     results,
     startSpeechToText,
@@ -34,6 +35,7 @@ function RecordAnswerSection({
     useLegacyResults: false,
   });
 
+  // Append recognition results into userAnswer
   useEffect(() => {
     if (results && results.length > 0) {
       setUserAnswer(
@@ -42,17 +44,32 @@ function RecordAnswerSection({
     }
   }, [results]);
 
+  // After recording stops and user pressed stop, validate and save
   useEffect(() => {
-    if (!isRecording && userAnswer.length > 10) {
-      UpdateUserAnswer();
+    if (!isRecording && shouldSave) {
+      if (userAnswer.trim().length > 10) {
+        UpdateUserAnswer();
+        setShouldSave(false);
+      } else {
+        toast("Error while saving your answer. Please try again.", {
+          description:
+            "No audio or answer too short. Please ensure your microphone is working and try again.",
+          duration: 5000,
+        });
+        setShouldSave(false);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userAnswer]);
+  }, [userAnswer, isRecording, shouldSave]);
 
   const StartStopRecording = async () => {
     if (isRecording) {
       stopSpeechToText();
+      setShouldSave(true);
     } else {
+      setUserAnswer("");
+      setResults([]);
+      setShouldSave(false);
       await startSpeechToText();
     }
   };
@@ -60,24 +77,49 @@ function RecordAnswerSection({
   const UpdateUserAnswer = async () => {
     setLoading(true);
     try {
-      const feedbackPrompt = `Question: ${
-        mockInterviewQuestion[activeQuestionIndex]?.question
-      }, 
-        User Answer: ${userAnswer}. Based on this, provide a rating and feedback (3-5 lines) 
-        in JSON format with fields 'rating' and 'feedback'.`;
+      const question = mockInterviewQuestion[activeQuestionIndex]?.question;
+      const correctAns = mockInterviewQuestion[activeQuestionIndex]?.answer;
+
+      if (!question) {
+        toast.error("No question found for this index.");
+        return;
+      }
+
+      const feedbackPrompt = `
+Question: ${question}
+User Answer: ${userAnswer}
+
+You are an interview evaluator. Give JSON only, no extra text, with exactly:
+{
+  "rating": number (1-10),
+  "feedback": "3-5 lines of constructive feedback"
+}
+`;
 
       const result = await chatSession.sendMessage(feedbackPrompt);
-      const rawResponse = result.response.text();
+      const rawResponse = await result.response.text();
 
-      const jsonStartIndex = rawResponse.indexOf("{");
-      const jsonEndIndex = rawResponse.lastIndexOf("}") + 1;
-      const mockJsonResp = rawResponse.substring(jsonStartIndex, jsonEndIndex);
+      // Clean & extract JSON object
+      let cleaned = rawResponse
+        .replace(/```/g, "")
+        .replace(/`/g, "")
+        .trim();
+
+      const jsonMatch = cleaned.match(/\{\s*"[^"]*"\s*:[\s\S]*\}/);
+
+      if (!jsonMatch) {
+        console.error("No JSON object in feedback:", rawResponse);
+        toast.error("Failed to process AI feedback.");
+        return;
+      }
+
+      const mockJsonResp = jsonMatch;
 
       let JsonFeedbackResp;
       try {
         JsonFeedbackResp = JSON.parse(mockJsonResp);
       } catch (err) {
-        console.error("Error parsing JSON response:", err);
+        console.error("Error parsing JSON response:", err, mockJsonResp);
         toast.error("Failed to process AI feedback.");
         return;
       }
@@ -87,8 +129,8 @@ function RecordAnswerSection({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mockIdRef: interviewData?.mockId,
-          question: mockInterviewQuestion[activeQuestionIndex]?.question,
-          correctAns: mockInterviewQuestion[activeQuestionIndex]?.answer,
+          question,
+          correctAns,
           userAns: userAnswer,
           feedback: JsonFeedbackResp?.feedback || "No feedback provided.",
           rating: JsonFeedbackResp?.rating || 0,
@@ -98,6 +140,7 @@ function RecordAnswerSection({
       });
 
       const data = await resp.json();
+
       if (resp.ok && data.success) {
         toast.success("Answer saved successfully");
       } else {
@@ -143,7 +186,11 @@ function RecordAnswerSection({
         />
       </div>
       <div className="flex flex-col items-center justify-center ">
-        <Button disabled={loading} variant="outline" onClick={StartStopRecording}>
+        <Button
+          disabled={loading}
+          variant="outline"
+          onClick={StartStopRecording}
+        >
           {isRecording ? (
             <h2 className="text-red-600 flex gap-2">
               <Mic /> Stop Recording
