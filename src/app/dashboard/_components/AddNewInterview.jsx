@@ -52,7 +52,6 @@ function AddNewInterview() {
   const { user } = useUser();
   const router = useRouter();
 
-  // Auto-suggest tech stack based on job role
   const autoSuggestTechStack = (role) => {
     const suggestion = TECH_STACK_SUGGESTIONS[role];
     if (suggestion) {
@@ -114,7 +113,7 @@ function AddNewInterview() {
             </DialogTitle>
           </DialogHeader>
 
-          {/* Form is OUTSIDE DialogDescription to avoid <p><form> issue */}
+          {/* Form */}
           <form onSubmit={onSubmit}>
             <div>
               <h2 className="text-sm font-medium mb-2">
@@ -176,21 +175,35 @@ function AddNewInterview() {
               </div>
             </div>
 
-            <div className="flex gap-5 justify-end mt-4">
+            {/* Footer buttons */}
+            <div className="flex gap-4 justify-end mt-6">
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 onClick={() => setOpenDialog(false)}
                 disabled={loading}
+                className="
+                  rounded-full px-5
+                  border-gray-300 text-gray-700
+                  hover:bg-gray-100 cursor-pointer
+                "
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading}>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="
+                  bg-blue-600 hover:bg-blue-700 text-white cursor-pointer
+                  rounded-full px-6
+                "
+              >
                 {loading ? (
-                  <>
-                    <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                    Generating from AI
-                  </>
+                  <span className="flex items-center gap-2">
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    <span>Generating from AI</span>
+                  </span>
                 ) : (
                   "Start Interview"
                 )}

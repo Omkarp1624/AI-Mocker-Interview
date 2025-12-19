@@ -22,7 +22,6 @@ function RecordAnswerSection({
   const [loading, setLoading] = useState(false);
   const { user } = useUser();
 
-  // Hook must always be called at top level (no conditions)
   const {
     error,
     isRecording,
@@ -35,7 +34,6 @@ function RecordAnswerSection({
     useLegacyResults: false,
   });
 
-  // Append recognition results into userAnswer
   useEffect(() => {
     if (results && results.length > 0) {
       setUserAnswer(
@@ -44,7 +42,6 @@ function RecordAnswerSection({
     }
   }, [results]);
 
-  // After recording stops and user pressed stop, validate and save
   useEffect(() => {
     if (!isRecording && shouldSave) {
       if (userAnswer.trim().length > 10) {
@@ -99,7 +96,6 @@ You are an interview evaluator. Give JSON only, no extra text, with exactly:
       const result = await chatSession.sendMessage(feedbackPrompt);
       const rawResponse = await result.response.text();
 
-      // Clean & extract JSON object
       let cleaned = rawResponse
         .replace(/```/g, "")
         .replace(/`/g, "")
@@ -185,22 +181,28 @@ You are an interview evaluator. Give JSON only, no extra text, with exactly:
           }}
         />
       </div>
-      <div className="flex flex-col items-center justify-center ">
-        <Button
-          disabled={loading}
-          variant="outline"
-          onClick={StartStopRecording}
-        >
-          {isRecording ? (
-            <h2 className="text-red-600 flex gap-2">
-              <Mic /> Stop Recording
-            </h2>
-          ) : (
-            <h2 className="text-green-600 flex gap-2">
-              <Mic /> Start Recording
-            </h2>
-          )}
-        </Button>
+
+      <div className="flex flex-col items-center justify-center">
+       <Button
+  disabled={loading}
+  variant="outline"
+  onClick={StartStopRecording}
+  className="
+    bg-blue-600 hover:bg-blue-700 text-white cursor-pointer
+    rounded-full px-6
+  "
+>
+  {isRecording ? (
+    <span className="text-white flex gap-2 items-center">
+      <Mic /> STOP (TEST)
+    </span>
+  ) : (
+    <span className="text-white flex gap-2 items-center">
+      <Mic /> START (TEST)
+    </span>
+  )}
+</Button>
+
       </div>
     </div>
   );

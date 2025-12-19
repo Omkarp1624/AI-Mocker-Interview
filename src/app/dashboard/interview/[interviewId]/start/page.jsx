@@ -17,10 +17,11 @@ async function getInterview(interviewId) {
 }
 
 export default async function StartInterview({ params }) {
-  const { interviewId } = await params; // <- important in Next.js 15
+  const { interviewId } = params; // <- important in Next.js 15
 
   const data = await getInterview(interviewId);
 
+  console.log("start page data ===>", JSON.stringify(data, null, 2));
   if (!data) {
     return <div className="p-8 text-center">Interview not found</div>;
   }
