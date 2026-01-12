@@ -16,6 +16,7 @@ function RecordAnswerSection({
   mockInterviewQuestion,
   activeQuestionIndex,
   interviewData,
+  onAnswerSaved,
 }) {
   const [userAnswer, setUserAnswer] = useState("");
   const [shouldSave, setShouldSave] = useState(false);
@@ -139,6 +140,9 @@ You are an interview evaluator. Give JSON only, no extra text, with exactly:
 
       if (resp.ok && data.success) {
         toast.success("Answer saved successfully");
+        if (onAnswerSaved) {
+          onAnswerSaved();
+        }
       } else {
         console.error("Save answer API error:", data.error);
         toast.error(data.error || "Failed to save answer.");
@@ -156,53 +160,76 @@ You are an interview evaluator. Give JSON only, no extra text, with exactly:
 
   if (error) {
     return (
-      <div className="text-red-500 text-center">
-        Speech-to-text not available in this browser: {error}
+      <div className="bg-red-500/20 border border-red-400/50 rounded-2xl p-8 text-center">
+        <p className="text-red-300 font-semibold">⚠️ Microphone Error</p>
+        <p className="text-red-200 text-sm mt-2">Speech-to-text not available in this browser</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center">
-      <div className="flex flex-col items-center justify-center rounded-lg p-5 my-7 bg-black relative">
-        <Image
-          src="/webcam.jpg"
-          alt="webcam-bg"
-          width={200}
-          height={200}
-          className="absolute"
-        />
-        <Webcam
-          mirrored
-          style={{
-            height: 300,
-            width: "100%",
-            zIndex: 10,
-          }}
-        />
+    <div className="space-y-6">
+      {/* Webcam Section */}
+      <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-400/30 rounded-2xl p-8 backdrop-blur-sm overflow-hidden">
+        <div className="relative bg-black rounded-xl overflow-hidden shadow-xl shadow-cyan-500/20">
+          <Webcam
+            mirrored
+            style={{
+              height: 400,
+              width: "100%",
+              borderRadius: 12,
+            }}
+            className="w-full"
+          />
+          {isRecording && (
+            <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-600/80 backdrop-blur-sm px-4 py-2 rounded-full">
+              <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+              <span className="text-white font-semibold text-sm">Recording</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-col items-center justify-center">
-       <Button
-  disabled={loading}
-  variant="outline"
-  onClick={StartStopRecording}
-  className="
-    bg-blue-600 hover:bg-blue-700 text-white cursor-pointer
-    rounded-full px-6
-  "
->
-  {isRecording ? (
-    <span className="text-white flex gap-2 items-center">
-      <Mic /> STOP (TEST)
-    </span>
-  ) : (
-    <span className="text-white flex gap-2 items-center">
-      <Mic /> START (TEST)
-    </span>
-  )}
-</Button>
+      {/* Recording Status & Instructions */}
+      <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-400/30 rounded-2xl p-6 backdrop-blur-sm">
+        <h3 className="text-white font-bold mb-3">📝 Your Answer</h3>
+        <div className="bg-slate-800/50 border border-blue-400/20 rounded-lg p-4 min-h-[100px] max-h-[200px] overflow-y-auto">
+          <p className="text-gray-300 text-sm leading-relaxed">
+            {userAnswer || "Your transcribed answer will appear here..."}
+          </p>
+        </div>
+      </div>
 
+      {/* Recording Button */}
+      <div className="flex justify-center pt-4">
+        <Button
+          disabled={loading}
+          onClick={StartStopRecording}
+          className={`
+            ${isRecording 
+              ? "bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 shadow-lg shadow-red-500/30" 
+              : "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg shadow-cyan-500/30"
+            }
+            text-white font-semibold px-8 py-4 rounded-lg transition-all duration-300
+            flex items-center gap-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed
+          `}
+        >
+          <Mic className="h-5 w-5" />
+          {loading ? (
+            <span>Processing...</span>
+          ) : isRecording ? (
+            <span>⏹️ Stop Recording</span>
+          ) : (
+            <span>🎤 Start Recording</span>
+          )}
+        </Button>
+      </div>
+
+      {/* Help Text */}
+      <div className="bg-amber-500/10 border border-amber-400/30 rounded-xl p-4">
+        <p className="text-amber-200 text-xs text-center">
+          💡 Click the microphone button above to start recording your answer. Speak clearly and naturally.
+        </p>
       </div>
     </div>
   );

@@ -38,9 +38,9 @@ const buttonVariants = cva(
 )
 
 export function Button({ children, className = "", ...props }) {
-    return (
-        <button {...props} className={className}>
-            {children}
-        </button>
-    );
+  return (
+    <button {...props} className={cn("cursor-pointer", className)}>
+      {children}
+    </button>
+  );
 }

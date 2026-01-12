@@ -45,97 +45,147 @@ function Interview() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center">Loading interview details...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="text-center">
+          <div className="inline-block mb-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+          </div>
+          <p className="text-white text-lg font-semibold">Loading interview details...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!interviewData) {
     return (
-      <div className="p-8 text-center text-red-500">
-        Interview not found
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="text-center bg-red-500/20 border border-red-400/50 rounded-xl p-8">
+          <p className="text-red-300 text-lg font-semibold">Interview not found</p>
+          <Link href="/dashboard" className="mt-4 inline-block">
+            <Button className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold">
+              Back to Dashboard
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="my-10 space-y-6">
-      {/* Top heading */}
-      <h2 className="font-bold text-2xl">Let&apos;s Get Started</h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 my-1 gap-10">
-        {/* Left: job info + information */}
-        <div className="flex flex-col my-5 gap-5">
-          <div className="flex flex-col p-5 rounded-lg border gap-3 bg-white shadow-sm">
-            <h2 className="text-sm">
-              <span className="font-semibold">Job Role/Job Position :</span>{" "}
-              {interviewData?.jobPosition || "-"}
-            </h2>
-            <h2 className="text-sm">
-              <span className="font-semibold">Job Description :</span>{" "}
-              {interviewData?.jobDesc || "-"}
-            </h2>
-            <h2 className="text-sm">
-              <span className="font-semibold">Years of Experience :</span>{" "}
-              {interviewData?.jobExperience || "-"}
-            </h2>
-          </div>
-
-          <div className="p-5 border rounded-lg border-yellow-500 bg-yellow-100">
-            <h2 className="flex gap-2 items-center text-yellow-600">
-              <Lightbulb /> <span className="font-semibold">Information</span>
-            </h2>
-            <h2 className="mt-3 text-yellow-700 text-sm">
-              Enable Webcam and Microphone. Click on the record section when
-              you want to answer the question. At the end of the interview we
-              will give you the feedback along with the correct answer for each
-              question and your answer to compare it.
-            </h2>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="mb-8">
+          <Link href="/dashboard" className="text-cyan-400 hover:text-cyan-300 flex items-center gap-2 mb-4 transition-colors">
+            ← Back to Dashboard
+          </Link>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+            🎯 Let&apos;s Get Started
+          </h1>
+          <p className="text-gray-400 mt-2">Prepare yourself for the interview</p>
         </div>
 
-        {/* Right: webcam + enable button */}
-        <div className="flex flex-col items-center justify-center gap-4">
-          {webCamEnabled ? (
-            <Webcam
-              onUserMedia={() => setWebCamEnabled(true)}
-              onUserMediaError={() => setWebCamEnabled(false)}
-              mirrored
-              style={{
-                height: 300,
-                width: 300,
-                borderRadius: 16,
-              }}
-              className="border border-gray-300"
-            />
-          ) : (
-            <>
-              <WebcamIcon className="h-72 w-full my-4 p-20 bg-secondary rounded-lg border" />
-              <Button
-                variant="outline"
-                className="
-                  bg-blue-600 hover:bg-blue-700 text-white cursor-pointer
-                  rounded-full px-6
-                "
-                onClick={() => setWebCamEnabled(true)}
-              >
-                Enable Webcam and Microphone
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left: Job Info */}
+          <div className="lg:col-span-1 flex flex-col gap-6">
+            {/* Job Details Card */}
+            <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-400/30 rounded-2xl p-6 backdrop-blur-sm">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <span className="text-2xl">📋</span> Interview Details
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Job Role</p>
+                  <p className="text-white font-semibold text-lg">{interviewData?.jobPosition || "-"}</p>
+                </div>
+                <div className="border-t border-blue-400/20 pt-4">
+                  <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Tech Stack</p>
+                  <p className="text-gray-300 text-sm">{interviewData?.jobDesc || "-"}</p>
+                </div>
+                <div className="border-t border-blue-400/20 pt-4">
+                  <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Experience Level</p>
+                  <p className="text-white font-semibold">{interviewData?.jobExperience || "-"} years</p>
+                </div>
+              </div>
+            </div>
 
-      {/* Bottom: Start Interview button */}
-      <div className="flex justify-end items-end">
-        <Link href={`/dashboard/interview/${interviewId}/start`}>
-          <Button
-            className="
-              bg-blue-600 hover:bg-blue-700 text-white cursor-pointer
-              rounded-full px-6
-            "
-          >
-            Start Interview
-          </Button>
-        </Link>
+            {/* Information Card */}
+            <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-400/30 rounded-2xl p-6 backdrop-blur-sm">
+              <h3 className="flex gap-2 items-center text-amber-300 font-bold mb-3 text-sm">
+                <Lightbulb className="h-5 w-5" /> <span>Important</span>
+              </h3>
+              <p className="text-amber-100 text-sm leading-relaxed">
+                ✓ Enable your webcam and microphone before starting<br/>
+                ✓ Click &quot;Record&quot; when ready to answer<br/>
+                ✓ Speak clearly and naturally<br/>
+                ✓ At the end, you&apos;ll get AI feedback and ratings
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Webcam Setup */}
+          <div className="lg:col-span-2">
+            <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-400/30 rounded-2xl p-8 backdrop-blur-sm flex flex-col items-center justify-center min-h-[500px]">
+              {webCamEnabled ? (
+                <div className="w-full space-y-4">
+                  <h3 className="text-white font-bold text-lg mb-4">📷 Camera Active</h3>
+                  <Webcam
+                    onUserMedia={() => setWebCamEnabled(true)}
+                    onUserMediaError={() => setWebCamEnabled(false)}
+                    mirrored
+                    style={{
+                      height: 400,
+                      width: "100%",
+                      borderRadius: 16,
+                    }}
+                    className="border-2 border-cyan-400/50 shadow-lg shadow-cyan-500/20"
+                  />
+                  <div className="flex gap-4 justify-center pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setWebCamEnabled(false)}
+                      className="border-blue-400/50 text-gray-300 hover:bg-blue-500/10 hover:text-cyan-300 rounded-lg px-6 py-2 font-semibold transition-all"
+                    >
+                      Disable Camera
+                    </Button>
+                    <Link href={`/dashboard/interview/${interviewId}/start`} className="w-full sm:w-auto">
+                      <Button className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold rounded-lg px-6 py-2 shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all duration-300">
+                        <span className="flex items-center gap-2">
+                          <span>🚀</span> Start Interview
+                        </span>
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center space-y-6">
+                  <div className="inline-block p-8 bg-blue-500/20 rounded-2xl">
+                    <WebcamIcon className="h-24 w-24 text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-xl mb-2">Camera & Microphone Setup</h3>
+                    <p className="text-gray-400 max-w-sm">Enable your camera and microphone to proceed with the interview</p>
+                  </div>
+                  <Button
+                    onClick={() => setWebCamEnabled(true)}
+                    className="
+                      bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600
+                      text-white font-semibold cursor-pointer
+                      rounded-lg px-8 py-3 shadow-lg shadow-cyan-500/30
+                      hover:shadow-cyan-500/50 transition-all duration-300
+                      text-base
+                    "
+                  >
+                    <span className="flex items-center gap-2">
+                      <WebcamIcon className="h-5 w-5" /> Enable Webcam & Microphone
+                    </span>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -26,6 +26,10 @@ export async function POST(req) {
       createdAt,
     } = await req.json();
 
+    // Coerce rating to a safe numeric value (0-10) and store as string
+    const parsedRating = Number(rating);
+    const safeRating = Number.isFinite(parsedRating) ? Math.round(parsedRating) : 0;
+
     if (!mockIdRef || !question || !userAns || !userEmail) {
       return NextResponse.json(
         { success: false, error: "Missing required fields" },
@@ -39,7 +43,7 @@ export async function POST(req) {
       correctAns,
       userAns,
       feedback,
-      rating,
+      rating: String(safeRating),
       userEmail,
       createdAt,
     });

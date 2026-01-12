@@ -23,7 +23,13 @@ export default async function StartInterview({ params }) {
 
   console.log("start page data ===>", JSON.stringify(data, null, 2));
   if (!data) {
-    return <div className="p-8 text-center">Interview not found</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="text-center bg-red-500/20 border border-red-400/50 rounded-xl p-8">
+          <p className="text-red-300 text-lg font-semibold">Interview not found</p>
+        </div>
+      </div>
+    );
   }
 
   return (
